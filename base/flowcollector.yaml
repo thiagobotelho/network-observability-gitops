@@ -1,0 +1,26 @@
+# Direct evita um deployment central em um cluster de nó único.
+apiVersion: flows.netobserv.io/v1beta2
+kind: FlowCollector
+metadata:
+  name: cluster
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  namespace: netobserv
+  deploymentModel: Direct
+  agent:
+    ebpf:
+      # 1 em cada 100 fluxos reduz impacto no CRC.
+      sampling: 100
+  processor:
+    logTypes: Flows
+    metrics:
+      includeList:
+        - namespace_flows_total
+        - node_ingress_bytes_total
+        - node_egress_bytes_total
+        - workload_ingress_bytes_total
+        - workload_egress_bytes_total
+  prometheus:
+    querier:
+      mode: Auto
