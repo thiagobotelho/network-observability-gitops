@@ -8,6 +8,8 @@ metadata:
 spec:
   namespace: netobserv
   deploymentModel: Direct
+  networkPolicy:
+    enable: true
   agent:
     ebpf:
       # 1 em cada 100 fluxos reduz impacto no CRC.

@@ -13,6 +13,25 @@ processor consomem recursos adicionais e exigem `cluster-admin`.
 
 Referência: documentação Network Observability do OpenShift 4.20.
 
+As políticas adotadas para o ambiente local ficam em `docs/POLITICAS.md`. O
+`FlowCollector` habilita `spec.networkPolicy.enable: true`, sampling conservador
+e métricas com cardinalidade reduzida.
+
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    Node[eBPF Agent nos nós] --> FC[FlowCollector]
+    FC --> Metrics[Prometheus metrics]
+    FC -. opcional .-> Loki[Loki flows]
+    Console[OpenShift Console] --> FC
+    Grafana[Grafana] --> Metrics
+```
+
+O Network Observability coleta fluxos de rede do cluster. Ele permanece opcional
+por exigir permissões elevadas e consumir recursos extras no CRC.
+
 ## Ambientes e validação
 
 ```bash
@@ -24,9 +43,3 @@ oc kustomize overlays/producao >/tmp/netobserv-prod.yaml
 `oc apply --dry-run=client -k ...` requer o CRD `FlowCollector` instalado; se o
 Operator ainda não estiver no cluster, valide com `oc kustomize`. Veja
 `docs/AMBIENTES.md`.
-
-## Automatizações preservadas e ajustadas
-
-- `.github/workflows/validate.yml` foi preservado e ajustado para renderizar
-  todos os Kustomizations, não apenas `overlays/crc`.
-- Adicionados overlays padronizados `desenvolvimento`, `aceite` e `producao`.

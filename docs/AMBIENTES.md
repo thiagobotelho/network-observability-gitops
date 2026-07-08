@@ -17,7 +17,3 @@ oc kustomize overlays/producao >/tmp/netobserv-prod.yaml
 Observação: `oc apply --dry-run=client -k ...` exige que o CRD `FlowCollector`
 já exista no cluster. Sem o Operator/CRD instalado, use `oc kustomize` como
 validação declarativa.
-
-Automação preservada:
-
-- `.github/workflows/validate.yml`: agora renderiza todos os Kustomizations e executa `yamllint`.
