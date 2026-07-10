@@ -34,6 +34,11 @@ flowchart LR
 O Network Observability coleta fluxos de rede do cluster. Ele permanece opcional
 por exigir permissões elevadas e consumir recursos extras no CRC.
 
+O `OperatorGroup` é intencionalmente criado sem `spec.targetNamespaces`.
+O Network Observability Operator declara suporte apenas ao install mode
+`AllNamespaces`; configurar `targetNamespaces` força `OwnNamespace` e faz o CSV
+falhar com `OwnNamespace InstallModeType not supported`.
+
 ## Ambientes e validação
 
 ```bash
