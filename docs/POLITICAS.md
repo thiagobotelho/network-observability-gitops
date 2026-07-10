@@ -12,6 +12,8 @@ base segue o perfil local/CRC e pode ser reforçada por ambiente.
   Operator usa os padrões documentados para console e monitoring. Se Loki,
   Kafka ou exporters forem movidos para namespaces protegidos por NetworkPolicy,
   inclua explicitamente esses namespaces antes de habilitar o recurso.
+- `spec.loki.mode: LokiStack`: usa um LokiStack dedicado no namespace
+  `netobserv`, com tenant mode `openshift-network`.
 - `deploymentModel: Direct`: reduz componentes centrais no CRC.
 - `agent.ebpf.sampling: 100`: coleta 1 em cada 100 fluxos para diminuir carga em
   single-node.
@@ -21,7 +23,10 @@ base segue o perfil local/CRC e pode ser reforçada por ambiente.
 
 ## Ambiente desenvolvimento
 
-- Usar apenas após Loki, Prometheus e Grafana estarem saudáveis.
+- Usar apenas após Loki de logging, MinIO, Prometheus e Grafana estarem
+  saudáveis.
+- Executar `scripts/bootstrap-netobserv-loki.sh` antes da primeira sincronização
+  para criar o Secret S3 e bucket do LokiStack dedicado.
 - Manter sampling conservador.
 - Manter o componente como opt-in via `argocd-gitops/optional`, para não
   consumir recursos do CRC em instalações mínimas.

@@ -1,0 +1,24 @@
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: loki
+  namespace: netobserv
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  size: 1x.demo
+  storage:
+    secret:
+      name: netobserv-loki-s3
+      type: s3
+    schemas:
+      - version: v13
+        effectiveDate: "2024-01-01"
+  tenants:
+    mode: openshift-network
+    openshift:
+      adminGroups:
+        - system:cluster-admins
+        - cluster-admin
+        - dedicated-admin

@@ -12,3 +12,15 @@ labels:
       app.kubernetes.io/managed-by: argocd
       app.kubernetes.io/environment: desenvolvimento
     includeSelectors: false
+
+patches:
+  - target:
+      group: loki.grafana.com
+      version: v1
+      kind: LokiStack
+      name: loki
+      namespace: netobserv
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: crc-csi-hostpath-provisioner

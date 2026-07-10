@@ -2,7 +2,15 @@
 
 Network Observability Operator para OpenShift Local. O perfil CRC usa o
 modelo `Direct`, indicado para clusters pequenos, amostragem conservadora e
-métricas no Prometheus do OpenShift. Loki não é obrigatório.
+métricas no Prometheus do OpenShift. Para a UI completa de fluxos, este repo
+cria um LokiStack dedicado em `netobserv`, separado do LokiStack de logging.
+
+Antes de sincronizar o app, gere o Secret S3 e o bucket do Loki dedicado:
+
+```bash
+cp .env.example .env
+scripts/bootstrap-netobserv-loki.sh
+```
 
 ```bash
 oc apply -k overlays/desenvolvimento
@@ -26,7 +34,7 @@ Manual passo a passo: [docs/COMO-USAR.md](docs/COMO-USAR.md).
 flowchart LR
     Node[eBPF Agent nos nós] --> FC[FlowCollector]
     FC --> Metrics[Prometheus metrics]
-    FC -. opcional .-> Loki[Loki flows]
+    FC --> Loki[LokiStack dedicado openshift-network]
     Console[OpenShift Console] --> FC
     Grafana[Grafana] --> Metrics
 ```
@@ -37,6 +45,13 @@ por exigir permissões elevadas e consumir recursos extras no CRC.
 Interface gráfica: acesse o Console do OpenShift e navegue em
 `Observe > Network Traffic`. O plugin é registrado como `ConsolePlugin`; não há
 uma `Route` pública própria do NetObserv para o usuário final.
+
+O LokiStack usado pelo NetObserv é dedicado. A documentação da Red Hat indica
+separar o LokiStack de Network Observability do LokiStack de Logging. Por isso:
+
+- logs de aplicação/infra/audit ficam no `loki-gitops` em `openshift-logging`;
+- flows de rede ficam no `network-observability-gitops` em `netobserv`;
+- o `FlowCollector` usa `spec.loki.mode: LokiStack`.
 
 O `OperatorGroup` é intencionalmente criado sem `spec.targetNamespaces`.
 O Network Observability Operator declara suporte apenas ao install mode
@@ -54,3 +69,19 @@ oc kustomize overlays/producao >/tmp/netobserv-prod.yaml
 `oc apply --dry-run=client -k ...` requer o CRD `FlowCollector` instalado; se o
 Operator ainda não estiver no cluster, valide com `oc kustomize`. Veja
 `docs/AMBIENTES.md`.
+
+## Secrets
+
+| Secret | Namespace | Chaves | Consumidor |
+|---|---|---|---|
+| `netobserv-loki-s3` | `netobserv` | `access_key_id`, `access_key_secret`, `bucketnames`, `endpoint`, `region` | `LokiStack/netobserv/loki` |
+
+Criação idempotente recomendada:
+
+```bash
+scripts/bootstrap-netobserv-loki.sh
+```
+
+O script lê `openshift-logging/minio-credentials`, cria o bucket `netobserv` no
+MinIO local e aplica o Secret `netobserv/netobserv-loki-s3`. Nenhuma credencial
+real é versionada.

@@ -9,6 +9,7 @@ eBPF, opera em nível de cluster e consome recursos extras.
 - Operator Network Observability via OLM.
 - `FlowCollector` único chamado `cluster`.
 - Modelo `Direct`, mais simples para CRC/single-node.
+- LokiStack dedicado em `netobserv` com tenant `openshift-network`.
 - Sampling conservador para reduzir carga.
 - Métricas de fluxo no Prometheus/OpenShift Monitoring.
 - Plugin gráfico no Console do OpenShift, acessado em `Observe > Network Traffic`.
@@ -22,7 +23,7 @@ Habilite depois que a stack principal estiver estável:
 - OpenShift GitOps saudável;
 - Prometheus/OpenShift Monitoring saudável;
 - Grafana saudável;
-- Loki/Tempo opcionais conforme o tipo de investigação;
+- Loki do `loki-gitops` saudável, pois o bootstrap local reaproveita o MinIO;
 - CRC com CPU/memória sobrando.
 
 Use para responder perguntas como:
@@ -147,7 +148,52 @@ Use `Topology` com `Scope = Namespace` ou `Scope = Owner`, remova filtros rápid
 restritivos e procure arestas inesperadas. Depois clique no componente/aresta e
 vá para `Traffic flows` para ver IP, porta, protocolo, origem e destino.
 
-## 5. Habilitar via Argo CD opcional
+## 5. Preparar o Loki dedicado do NetObserv
+
+O Network Observability precisa de um LokiStack dedicado para a experiência
+completa do Console, principalmente a tabela `Traffic flows`. O LokiStack de
+logging em `openshift-logging` não deve ser reutilizado para flows de rede.
+
+No CRC, este repo reaproveita apenas o MinIO local do `loki-gitops`, mas cria
+um bucket e Secret próprios para o NetObserv:
+
+```bash
+cd network-observability-gitops
+cp .env.example .env
+scripts/bootstrap-netobserv-loki.sh
+```
+
+O script:
+
+1. valida login com `oc`;
+2. garante o namespace `netobserv`;
+3. lê `openshift-logging/minio-credentials`;
+4. cria/atualiza o Secret `netobserv/netobserv-loki-s3`;
+5. cria o bucket `netobserv` no MinIO local.
+
+Secret esperado:
+
+```text
+Namespace: netobserv
+Secret:    netobserv-loki-s3
+Chaves:    access_key_id, access_key_secret, bucketnames, endpoint, region
+```
+
+Criação manual equivalente:
+
+```bash
+oc -n netobserv create secret generic netobserv-loki-s3 \
+  --from-literal=access_key_id='<minio-user>' \
+  --from-literal=access_key_secret='<minio-password>' \
+  --from-literal=bucketnames='netobserv' \
+  --from-literal=endpoint='http://minio.openshift-logging.svc:9000' \
+  --from-literal=region='us-east-1' \
+  --dry-run=client -o yaml | oc apply -f -
+```
+
+Não versione esse Secret.
+
+## 6. Habilitar via Argo CD opcional
 
 No `argocd-gitops`, o Network Observability fica em `optional/` para não pesar
 em instalações mínimas do CRC.
@@ -165,7 +211,7 @@ oc -n netobserv get pods
 oc get flowcollector cluster
 ```
 
-## 6. Habilitar diretamente
+## 7. Habilitar diretamente
 
 Para aplicar sem Argo CD:
 
@@ -177,7 +223,7 @@ oc apply -k overlays/desenvolvimento
 Se a CRD `flowcollectors.flows.netobserv.io` ainda não existir, aguarde a
 Subscription instalar o Operator e reaplique o overlay.
 
-## 7. Políticas usadas neste perfil
+## 8. Políticas usadas neste perfil
 
 O `FlowCollector` local usa:
 
@@ -185,6 +231,12 @@ O `FlowCollector` local usa:
 spec:
   namespace: netobserv
   deploymentModel: Direct
+  loki:
+    enable: true
+    mode: LokiStack
+    lokiStack:
+      name: loki
+      namespace: netobserv
   networkPolicy:
     enable: true
   agent:
@@ -204,6 +256,8 @@ spec:
 Interpretação:
 
 - `Direct`: evita componentes centrais extras no CRC.
+- `loki.mode: LokiStack`: usa o LokiStack dedicado com tenant
+  `openshift-network`.
 - `sampling: 100`: coleta 1 em cada 100 fluxos, reduzindo overhead.
 - `logTypes: Flows`: mantém o pipeline focado em fluxos de rede.
 - `includeList`: reduz cardinalidade das métricas.
@@ -212,10 +266,11 @@ Interpretação:
 
 Detalhes da política local: [POLITICAS.md](POLITICAS.md).
 
-## 8. Validar saúde
+## 9. Validar saúde
 
 ```bash
 oc get flowcollector cluster -o yaml
+oc get lokistack loki -n netobserv
 oc -n netobserv get pods,svc
 oc -n netobserv get events --sort-by=.lastTimestamp | tail -50
 ```
@@ -232,7 +287,7 @@ Em CRC, acompanhe CPU/memória após habilitar:
 oc adm top pods -A | grep -E 'netobserv|openshift-monitoring'
 ```
 
-## 9. Validar métricas no Prometheus/Grafana
+## 10. Validar métricas no Prometheus/Grafana
 
 Procure por métricas como:
 
@@ -255,7 +310,7 @@ sum by (DstK8S_OwnerName) (rate(workload_ingress_bytes_total[5m]))
 Os nomes de labels podem variar conforme versão do Operator. Valide no
 Prometheus antes de fixar dashboards/alertas.
 
-## 10. NetworkPolicy e namespaces adicionais
+## 11. NetworkPolicy e namespaces adicionais
 
 Quando Loki, Kafka ou exporters estiverem em namespaces com NetworkPolicy
 restritiva, inclua os namespaces em `spec.networkPolicy.additionalNamespaces`.
@@ -278,7 +333,7 @@ spec:
 Só adicione namespaces necessários. Mais permissões significam uma superfície
 maior de comunicação.
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### FlowCollector não existe
 
@@ -310,12 +365,38 @@ Procure problemas de SCC, permissões, imagem ou recursos insuficientes.
 
 - gere tráfego entre workloads;
 - confirme que os pods do `netobserv` estão prontos;
+- confirme que `oc get lokistack loki -n netobserv` está `Ready`;
 - valide se as métricas existem no Prometheus;
 - confirme se NetworkPolicy não bloqueia o caminho do pipeline.
 - confirme que você está olhando uma janela de tempo recente na UI.
 - recarregue o Console após instalar o plugin.
 
-## 12. Remover
+### Erro `lookup loki ... no such host`
+
+Esse erro aparece quando o `FlowCollector` usa o default `Monolithic` e tenta
+consultar `http://loki:3100`, mas não existe Service `loki` no namespace do
+pipeline.
+
+Correção aplicada neste repo:
+
+```yaml
+spec:
+  loki:
+    enable: true
+    mode: LokiStack
+    lokiStack:
+      name: loki
+      namespace: netobserv
+```
+
+Depois valide:
+
+```bash
+oc -n netobserv logs daemonset/flowlogs-pipeline --tail=80
+oc -n netobserv logs deploy/netobserv-plugin --tail=80
+```
+
+## 13. Remover
 
 Se foi aplicado via Argo CD opcional:
 

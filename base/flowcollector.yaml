@@ -4,6 +4,7 @@ kind: FlowCollector
 metadata:
   name: cluster
   annotations:
+    argocd.argoproj.io/sync-wave: "20"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   namespace: netobserv
@@ -23,6 +24,12 @@ spec:
         - node_egress_bytes_total
         - workload_ingress_bytes_total
         - workload_egress_bytes_total
+  loki:
+    enable: true
+    mode: LokiStack
+    lokiStack:
+      name: loki
+      namespace: netobserv
   prometheus:
     querier:
       mode: Auto
