@@ -17,6 +17,8 @@ As políticas adotadas para o ambiente local ficam em `docs/POLITICAS.md`. O
 `FlowCollector` habilita `spec.networkPolicy.enable: true`, sampling conservador
 e métricas com cardinalidade reduzida.
 
+Manual passo a passo: [docs/COMO-USAR.md](docs/COMO-USAR.md).
+
 
 ## Arquitetura
 
