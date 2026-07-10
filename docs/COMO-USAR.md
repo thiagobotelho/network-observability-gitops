@@ -11,6 +11,7 @@ eBPF, opera em nível de cluster e consome recursos extras.
 - Modelo `Direct`, mais simples para CRC/single-node.
 - Sampling conservador para reduzir carga.
 - Métricas de fluxo no Prometheus/OpenShift Monitoring.
+- Plugin gráfico no Console do OpenShift, acessado em `Observe > Network Traffic`.
 - `spec.networkPolicy.enable: true`, para o Operator gerenciar políticas de
   rede compatíveis com o pipeline.
 
@@ -32,7 +33,121 @@ Use para responder perguntas como:
 - se uma NetworkPolicy está bloqueando tráfego esperado;
 - se há tráfego inesperado entre aplicações.
 
-## 3. Habilitar via Argo CD opcional
+## 3. Interface gráfica
+
+Sim, existe interface gráfica. O Network Observability não expõe uma `Route`
+própria para o usuário final; ele registra um `ConsolePlugin` e aparece dentro
+do Console do OpenShift.
+
+Obtenha a URL do Console:
+
+```bash
+oc get route console -n openshift-console \
+  -o jsonpath='https://{.spec.host}{"\n"}'
+```
+
+Valide se o plugin foi registrado:
+
+```bash
+oc get consoleplugins | grep -E 'netobserv|NAME'
+```
+
+Valide os serviços internos do plugin:
+
+```bash
+oc -n netobserv get svc netobserv-plugin netobserv-plugin-metrics
+oc -n openshift-netobserv-operator get svc netobserv-plugin-static
+```
+
+No Console:
+
+1. Acesse a rota do Console do OpenShift.
+2. Entre com um usuário administrador.
+3. Vá em `Observe > Network Traffic`.
+4. Use as abas:
+   - `Overview`: visão agregada por namespace, workload, nó, pod ou serviço;
+   - `Traffic flows`: tabela detalhada dos fluxos, com filtros, colunas e
+     exportação;
+   - `Topology`: grafo visual das comunicações entre recursos.
+
+Também é possível encontrar visões filtradas a partir de páginas de recursos
+como namespaces, workloads, nodes e services, quando o plugin está carregado no
+Console.
+
+Se o menu não aparecer:
+
+```bash
+oc get consoleplugins
+oc get flowcollector cluster
+oc -n openshift-console get pods
+```
+
+Depois faça logout/login ou recarregue o Console. Plugins dinâmicos podem exigir
+alguns minutos até aparecerem na sessão do navegador.
+
+## 4. Como investigar perguntas comuns
+
+### Quais namespaces estão conversando entre si?
+
+Na UI:
+
+1. `Observe > Network Traffic > Topology`.
+2. Em `Show advanced options`, use `Scope = Namespace`.
+3. Observe as arestas entre namespaces e o volume/rate nas conexões.
+
+No Prometheus/Grafana:
+
+```promql
+sum by (SrcK8S_Namespace, DstK8S_Namespace) (
+  rate(namespace_flows_total[5m])
+)
+```
+
+### Quais workloads geram mais tráfego?
+
+Na UI:
+
+1. `Overview`.
+2. Altere o escopo para workload/owner, quando disponível.
+3. Ordene por bytes/rate.
+
+No Prometheus/Grafana:
+
+```promql
+topk(10, sum by (SrcK8S_OwnerName) (
+  rate(workload_egress_bytes_total[5m])
+))
+```
+
+### Qual nó recebe mais ingress/egress?
+
+Use `Overview` com escopo de node ou consulte:
+
+```promql
+topk(10, sum by (DstK8S_HostName) (
+  rate(node_ingress_bytes_total[5m])
+))
+
+topk(10, sum by (SrcK8S_HostName) (
+  rate(node_egress_bytes_total[5m])
+))
+```
+
+### Uma NetworkPolicy está bloqueando tráfego esperado?
+
+Use a aba `Traffic flows` e filtre origem/destino esperados. Se a versão/recurso
+do Operator estiver com eventos de rede habilitados, a tabela pode mostrar
+informações de allow/drop relacionadas a NetworkPolicy. No perfil CRC deste
+repositório, mantemos o modo leve por padrão; habilitar eventos detalhados pode
+aumentar consumo de CPU/memória.
+
+### Há tráfego inesperado entre aplicações?
+
+Use `Topology` com `Scope = Namespace` ou `Scope = Owner`, remova filtros rápidos
+restritivos e procure arestas inesperadas. Depois clique no componente/aresta e
+vá para `Traffic flows` para ver IP, porta, protocolo, origem e destino.
+
+## 5. Habilitar via Argo CD opcional
 
 No `argocd-gitops`, o Network Observability fica em `optional/` para não pesar
 em instalações mínimas do CRC.
@@ -50,7 +165,7 @@ oc -n netobserv get pods
 oc get flowcollector cluster
 ```
 
-## 4. Habilitar diretamente
+## 6. Habilitar diretamente
 
 Para aplicar sem Argo CD:
 
@@ -62,7 +177,7 @@ oc apply -k overlays/desenvolvimento
 Se a CRD `flowcollectors.flows.netobserv.io` ainda não existir, aguarde a
 Subscription instalar o Operator e reaplique o overlay.
 
-## 5. Políticas usadas neste perfil
+## 7. Políticas usadas neste perfil
 
 O `FlowCollector` local usa:
 
@@ -97,7 +212,7 @@ Interpretação:
 
 Detalhes da política local: [POLITICAS.md](POLITICAS.md).
 
-## 6. Validar saúde
+## 8. Validar saúde
 
 ```bash
 oc get flowcollector cluster -o yaml
@@ -117,7 +232,7 @@ Em CRC, acompanhe CPU/memória após habilitar:
 oc adm top pods -A | grep -E 'netobserv|openshift-monitoring'
 ```
 
-## 7. Validar métricas no Prometheus/Grafana
+## 9. Validar métricas no Prometheus/Grafana
 
 Procure por métricas como:
 
@@ -140,7 +255,7 @@ sum by (DstK8S_OwnerName) (rate(workload_ingress_bytes_total[5m]))
 Os nomes de labels podem variar conforme versão do Operator. Valide no
 Prometheus antes de fixar dashboards/alertas.
 
-## 8. NetworkPolicy e namespaces adicionais
+## 10. NetworkPolicy e namespaces adicionais
 
 Quando Loki, Kafka ou exporters estiverem em namespaces com NetworkPolicy
 restritiva, inclua os namespaces em `spec.networkPolicy.additionalNamespaces`.
@@ -163,7 +278,7 @@ spec:
 Só adicione namespaces necessários. Mais permissões significam uma superfície
 maior de comunicação.
 
-## 9. Troubleshooting
+## 11. Troubleshooting
 
 ### FlowCollector não existe
 
@@ -197,8 +312,10 @@ Procure problemas de SCC, permissões, imagem ou recursos insuficientes.
 - confirme que os pods do `netobserv` estão prontos;
 - valide se as métricas existem no Prometheus;
 - confirme se NetworkPolicy não bloqueia o caminho do pipeline.
+- confirme que você está olhando uma janela de tempo recente na UI.
+- recarregue o Console após instalar o plugin.
 
-## 10. Remover
+## 12. Remover
 
 Se foi aplicado via Argo CD opcional:
 
@@ -222,6 +339,7 @@ oc -n netobserv get pods
 ## Referências oficiais
 
 - Red Hat/OpenShift Network Observability: <https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/>
+- Observing network traffic: <https://docs.okd.io/latest/observability/network_observability/observing-network-traffic.html>
 - NetworkPolicy no FlowCollector: <https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/network_observability/network-observability-network-policy>
 - Network Observability Operator upstream: <https://github.com/netobserv/network-observability-operator>
 - FlowCollector API: <https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md>
