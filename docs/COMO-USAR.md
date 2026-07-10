@@ -396,6 +396,34 @@ oc -n netobserv logs daemonset/flowlogs-pipeline --tail=80
 oc -n netobserv logs deploy/netobserv-plugin --tail=80
 ```
 
+### Log `Could not get max chunk age`
+
+Quando o NetObserv usa `spec.loki.mode: LokiStack`, o `netobserv-plugin` pode
+registrar a mensagem abaixo ao abrir algumas telas ou consultas:
+
+```text
+Could not get max chunk age: status URL endpoint is not available when using Loki operator
+```
+
+Esse log não é o mesmo problema do `lookup loki`. O caminho principal de
+consulta continua sendo o gateway do LokiStack:
+
+```text
+https://loki-gateway-http.netobserv.svc.cluster.local.:8080/api/logs/v1/network/
+```
+
+Valide a saúde real olhando:
+
+```bash
+oc get lokistack loki -n netobserv
+oc -n netobserv logs daemonset/flowlogs-pipeline --since=5m
+oc get flowcollector cluster
+```
+
+No CRC, `LokiStack` com `size: 1x.demo` também pode reportar aviso de apenas um
+ingester. Isso é aceitável para laboratório local, mas não é configuração de
+alta disponibilidade.
+
 ## 13. Remover
 
 Se foi aplicado via Argo CD opcional:
