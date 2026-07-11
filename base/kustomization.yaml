@@ -4,4 +4,5 @@ resources:
   - namespace.yaml
   - operator.yaml
   - loki/lokistack.yaml
+  - loki/rbac.yaml
   - flowcollector.yaml

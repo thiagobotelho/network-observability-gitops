@@ -53,6 +53,12 @@ separar o LokiStack de Network Observability do LokiStack de Logging. Por isso:
 - flows de rede ficam no `network-observability-gitops` em `netobserv`;
 - o `FlowCollector` usa `spec.loki.mode: LokiStack`.
 
+O gateway do LokiStack usa autenticação OpenShift e precisa validar tokens.
+Por isso o repositório cria uma permissão mínima para o ServiceAccount
+`netobserv/loki-gateway` executar `tokenreviews.authentication.k8s.io/create`.
+Sem essa permissão, o gateway registra mensagens como `tokenreviews ... is
+forbidden` ao receber consultas autenticadas.
+
 No CRC o LokiStack dedicado usa perfil reduzido para caber no cluster local.
 O Operator pode mostrar o warning `InsufficientIngesterReplicas` quando existe
 apenas um ingester. Isso indica ausência de alta disponibilidade durante restart
