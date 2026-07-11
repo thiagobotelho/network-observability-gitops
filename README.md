@@ -53,6 +53,13 @@ separar o LokiStack de Network Observability do LokiStack de Logging. Por isso:
 - flows de rede ficam no `network-observability-gitops` em `netobserv`;
 - o `FlowCollector` usa `spec.loki.mode: LokiStack`.
 
+No CRC o LokiStack dedicado usa perfil reduzido para caber no cluster local.
+O Operator pode mostrar o warning `InsufficientIngesterReplicas` quando existe
+apenas um ingester. Isso indica ausência de alta disponibilidade durante restart
+do ingester, não falha funcional de ingestão em laboratório. Para remover o
+warning em ambiente com mais recursos, aumente réplicas de ingester ou use um
+tamanho de LokiStack apropriado; no CRC o padrão favorece economia de CPU/RAM.
+
 O `OperatorGroup` é intencionalmente criado sem `spec.targetNamespaces`.
 O Network Observability Operator declara suporte apenas ao install mode
 `AllNamespaces`; configurar `targetNamespaces` força `OwnNamespace` e faz o CSV
