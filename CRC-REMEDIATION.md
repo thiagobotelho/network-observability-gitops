@@ -7,3 +7,5 @@ Credenciais do realm são seeds iniciais, não um mecanismo de recuperação da 
 O overlay crc-validation do repositório argocd-gitops direciona somente os componentes em correção para a branch de validação. O overlay desenvolvimento normal permanece em main. Voltar a esse overlay após integrar as correções aprovadas.
 
 O overlay desenvolvimento de loki-gitops usa imagens locais compiladas dos commits oficiais MinIO/MC. Cria ImageStreams e BuildConfigs sem triggers automáticos. Em um CRC novo, aplicar os recursos de build, executar oc start-build mc-crc e minio-crc em openshift-logging, aguardar Complete e então reconciliar os workloads. O registry interno não constitui backup das imagens. Fontes antigas compiladas não equivalem a versão atualmente suportada ou sem vulnerabilidades.
+
+O bootstrap deste laboratório usa `scripts/bootstrap-netobserv-loki.sh`, que chama o script Python com alvo CRC fixo. Valores de Secrets seguem apenas em memória/stdin; o Job de bucket executa em openshift-logging com referências ao Secret local e imagem MC compilada. `--check` verifica os pré-requisitos sem criar recursos.
