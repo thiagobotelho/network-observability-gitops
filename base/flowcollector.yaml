@@ -7,6 +7,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "20"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
+  # Namespace deste objeto; não confundir com seleção de namespaces de origem.
   namespace: netobserv
   deploymentModel: Direct
   networkPolicy:
@@ -14,6 +15,7 @@ spec:
   agent:
     ebpf:
       # 1 em cada 100 fluxos reduz impacto no CRC.
+      # Amostragem reduz custo e também reduz a cobertura observada.
       sampling: 100
   processor:
     logTypes: Flows

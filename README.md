@@ -110,3 +110,7 @@ Use a UI de fluxos já existente separadamente para investigar L3/L4. Confirme s
 ## Manual de operação
 
 Consulte [docs/OPERACAO.md](docs/OPERACAO.md) para os procedimentos de configuração, verificação e manutenção.
+
+## Aprender a configuração
+
+Consulte o [guia comentado](docs/APRENDIZADO.md) para entender componentes, escolhas, testes positivos/negativos e reversão.

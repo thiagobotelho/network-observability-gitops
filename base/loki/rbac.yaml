@@ -7,6 +7,7 @@ metadata:
 rules:
   - apiGroups:
       - authentication.k8s.io
+    # Recursos ou dependências desta seção; avaliar seu escopo antes de alterar.
     resources:
       - tokenreviews
     verbs:
@@ -24,11 +25,14 @@ metadata:
   name: netobserv-loki-gateway-tokenreviewer
   annotations:
     argocd.argoproj.io/sync-wave: "11"
+# Referência de permissão; este vínculo não cria identidades no provedor.
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: netobserv-loki-gateway-tokenreviewer
+# Identidades que recebem as permissões declaradas pelo papel referenciado.
 subjects:
   - kind: ServiceAccount
     name: loki-gateway
+    # Namespace deste objeto; não confundir com seleção de namespaces de origem.
     namespace: netobserv
