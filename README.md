@@ -106,3 +106,7 @@ real é versionada.
 O laboratório [mesh-apps-lab](https://github.com/thiagobotelho/mesh-apps-lab) diferencia timeout/conexão recusada por OVN, rejeição de plaintext por mTLS e HTTP 403 por AuthorizationPolicy. Métricas HTTP do Envoy não contabilizam necessariamente pacotes descartados antes do proxy.
 
 Use a UI de fluxos já existente separadamente para investigar L3/L4. Confirme se a versão/configuração oferece evidência de drop antes de afirmar bloqueios observados. Não adicionar permissões elevadas aos clientes sleep nem criar outro FlowCollector para o exercício. Nenhuma mudança técnica de coleta é necessária nesta proposta.
+
+## Manual de operação
+
+Consulte [docs/OPERACAO.md](docs/OPERACAO.md) para os procedimentos de configuração, verificação e manutenção.
