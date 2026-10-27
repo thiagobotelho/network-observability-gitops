@@ -314,8 +314,7 @@ Prometheus antes de fixar dashboards/alertas.
 
 Quando Loki, Kafka ou exporters estiverem em namespaces com NetworkPolicy
 restritiva, inclua os namespaces em `spec.networkPolicy.additionalNamespaces`.
-No CRC atual, o perfil não envia flows para Loki/Kafka, então a configuração
-permanece mínima.
+Inclua somente os namespaces dos destinos configurados no FlowCollector. Verifique Loki, Kafka e exporters utilizados antes de definir a lista.
 
 Exemplo de evolução:
 
@@ -452,3 +451,4 @@ oc -n netobserv get pods
 - NetworkPolicy no FlowCollector: <https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/network_observability/network-observability-network-policy>
 - Network Observability Operator upstream: <https://github.com/netobserv/network-observability-operator>
 - FlowCollector API: <https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md>
+
