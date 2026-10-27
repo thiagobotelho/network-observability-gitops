@@ -2,12 +2,15 @@ apiVersion: loki.grafana.com/v1
 kind: LokiStack
 metadata:
   name: loki
+  # Namespace deste objeto; não confundir com seleção de namespaces de origem.
   namespace: netobserv
   annotations:
     argocd.argoproj.io/sync-wave: "10"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   size: 1x.demo
+  # Obrigatório: classe RWO do ambiente. O overlay CRC seleciona a classe do OpenShift Local.
+  storageClassName: classe-rwo-exemplo
   storage:
     secret:
       name: netobserv-loki-s3
