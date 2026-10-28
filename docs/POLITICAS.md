@@ -15,7 +15,7 @@ base segue o perfil local/CRC e pode ser reforçada por ambiente.
 - `spec.loki.mode: LokiStack`: usa um LokiStack dedicado no namespace
   `netobserv`, com tenant mode `openshift-network`.
 - `deploymentModel: Direct`: reduz componentes centrais no CRC.
-- `agent.ebpf.sampling: 100`: coleta 1 em cada 100 fluxos para diminuir carga em
+- `agent.ebpf.sampling: 100`: usa amostragem 1:100 de pacotes para diminuir carga em
   single-node.
 - `processor.logTypes: Flows`: mantém foco nos fluxos de rede.
 - `processor.metrics.includeList`: limita cardinalidade a métricas úteis para
@@ -27,7 +27,12 @@ base segue o perfil local/CRC e pode ser reforçada por ambiente.
   saudáveis.
 - Executar `scripts/bootstrap-netobserv-loki.sh` antes da primeira sincronização
   para criar o Secret S3 e bucket do LokiStack dedicado.
-- Manter sampling conservador.
+- Usar sampling 1 para diagnóstico, PacketDrop, DNSTracking e FlowRTT.
+- O agente eBPF executa privilegiado; clientes das aplicações não recebem essa permissão.
+- Incluir métricas agregadas de drops, DNS e RTT, sem séries por pod.
+- Não habilitar NetworkEvents nem alterar FeatureGate do cluster.
+- Acompanhar carga e armazenamento; para reduzir coleta, aumentar sampling no Git.
+- Consultar [DIAGNOSTICO.md](DIAGNOSTICO.md) para filtros, consultas e reversão.
 - Manter o componente como opt-in via `argocd-gitops/optional`, para não
   consumir recursos do CRC em instalações mínimas.
 - Validar overhead com:

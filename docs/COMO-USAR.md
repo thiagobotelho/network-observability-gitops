@@ -10,7 +10,8 @@ eBPF, opera em nível de cluster e consome recursos extras.
 - `FlowCollector` único chamado `cluster`.
 - Modelo `Direct`, mais simples para CRC/single-node.
 - LokiStack dedicado em `netobserv` com tenant `openshift-network`.
-- Sampling conservador para reduzir carga.
+- Perfil de desenvolvimento com drops, DNS e RTT; sampling 1.
+- Agente privilegiado somente no perfil de desenvolvimento; base leve nos demais.
 - Métricas de fluxo no Prometheus/OpenShift Monitoring.
 - Plugin gráfico no Console do OpenShift, acessado em `Observe > Network Traffic`.
 - `spec.networkPolicy.enable: true`, para o Operator gerenciar políticas de
@@ -100,7 +101,7 @@ No Prometheus/Grafana:
 
 ```promql
 sum by (SrcK8S_Namespace, DstK8S_Namespace) (
-  rate(namespace_flows_total[5m])
+  rate(netobserv_namespace_flows_total[5m])
 )
 ```
 
@@ -116,7 +117,7 @@ No Prometheus/Grafana:
 
 ```promql
 topk(10, sum by (SrcK8S_OwnerName) (
-  rate(workload_egress_bytes_total[5m])
+  rate(netobserv_workload_egress_bytes_total[5m])
 ))
 ```
 
@@ -126,11 +127,11 @@ Use `Overview` com escopo de node ou consulte:
 
 ```promql
 topk(10, sum by (DstK8S_HostName) (
-  rate(node_ingress_bytes_total[5m])
+  rate(netobserv_node_ingress_bytes_total[5m])
 ))
 
 topk(10, sum by (SrcK8S_HostName) (
-  rate(node_egress_bytes_total[5m])
+  rate(netobserv_node_egress_bytes_total[5m])
 ))
 ```
 
@@ -138,9 +139,9 @@ topk(10, sum by (SrcK8S_HostName) (
 
 Use a aba `Traffic flows` e filtre origem/destino esperados. Se a versão/recurso
 do Operator estiver com eventos de rede habilitados, a tabela pode mostrar
-informações de allow/drop relacionadas a NetworkPolicy. No perfil CRC deste
-repositório, mantemos o modo leve por padrão; habilitar eventos detalhados pode
-aumentar consumo de CPU/memória.
+informações de allow/drop relacionadas a NetworkPolicy. No perfil de desenvolvimento, PacketDrop mostra descartes e motivos.
+Isso não identifica automaticamente uma NetworkPolicy. NetworkEvents não está
+habilitado. Siga [DIAGNOSTICO.md](DIAGNOSTICO.md) para investigar.
 
 ### Há tráfego inesperado entre aplicações?
 
@@ -159,16 +160,16 @@ um bucket e Secret próprios para o NetObserv:
 
 ```bash
 cd network-observability-gitops
-cp .env.example .env
-scripts/bootstrap-netobserv-loki.sh
+oc create namespace netobserv --dry-run=client -o yaml | oc apply -f -
+bash scripts/bootstrap-netobserv-loki.sh
 ```
 
 O script:
 
 1. valida login com `oc`;
-2. garante o namespace `netobserv`;
+2. confere que o servidor é o CRC; prepare o namespace antes;
 3. lê `openshift-logging/minio-credentials`;
-4. cria/atualiza o Secret `netobserv/netobserv-loki-s3`;
+4. cria o Secret ausente e recusa sobrescrever credenciais divergentes;
 5. cria o bucket `netobserv` no MinIO local.
 
 Secret esperado:
@@ -241,7 +242,9 @@ spec:
     enable: true
   agent:
     ebpf:
-      sampling: 100
+      sampling: 1
+      privileged: true
+      features: [PacketDrop, DNSTracking, FlowRTT]
   processor:
     logTypes: Flows
     metrics:
@@ -251,6 +254,13 @@ spec:
         - node_egress_bytes_total
         - workload_ingress_bytes_total
         - workload_egress_bytes_total
+        - namespace_drop_packets_total
+        - namespace_ingress_packets_total
+        - node_drop_packets_total
+        - node_ingress_packets_total
+        - namespace_dns_latency_seconds
+        - namespace_dns_flows_total
+        - namespace_rtt_seconds
 ```
 
 Interpretação:
@@ -258,7 +268,8 @@ Interpretação:
 - `Direct`: evita componentes centrais extras no CRC.
 - `loki.mode: LokiStack`: usa o LokiStack dedicado com tenant
   `openshift-network`.
-- `sampling: 100`: coleta 1 em cada 100 fluxos, reduzindo overhead.
+- `sampling: 1`: não reduz a coleta por amostragem; exige acompanhar recursos.
+- PacketDrop exige `privileged: true` no agente; DNS e RTT enriquecem os fluxos.
 - `logTypes: Flows`: mantém o pipeline focado em fluxos de rede.
 - `includeList`: reduz cardinalidade das métricas.
 - `networkPolicy.enable: true`: permite que o Operator gere políticas para o
@@ -292,19 +303,19 @@ oc adm top pods -A | grep -E 'netobserv|openshift-monitoring'
 Procure por métricas como:
 
 ```promql
-namespace_flows_total
-node_ingress_bytes_total
-node_egress_bytes_total
-workload_ingress_bytes_total
-workload_egress_bytes_total
+netobserv_namespace_flows_total
+netobserv_node_ingress_bytes_total
+netobserv_node_egress_bytes_total
+netobserv_workload_ingress_bytes_total
+netobserv_workload_egress_bytes_total
 ```
 
 Exemplos:
 
 ```promql
-sum by (SrcK8S_Namespace, DstK8S_Namespace) (rate(namespace_flows_total[5m]))
-sum by (SrcK8S_OwnerName) (rate(workload_egress_bytes_total[5m]))
-sum by (DstK8S_OwnerName) (rate(workload_ingress_bytes_total[5m]))
+sum by (SrcK8S_Namespace, DstK8S_Namespace) (rate(netobserv_namespace_flows_total[5m]))
+sum by (SrcK8S_OwnerName) (rate(netobserv_workload_egress_bytes_total[5m]))
+sum by (DstK8S_OwnerName) (rate(netobserv_workload_ingress_bytes_total[5m]))
 ```
 
 Os nomes de labels podem variar conforme versão do Operator. Valide no

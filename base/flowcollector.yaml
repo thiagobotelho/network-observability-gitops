@@ -14,7 +14,7 @@ spec:
     enable: true
   agent:
     ebpf:
-      # 1 em cada 100 fluxos reduz impacto no CRC.
+      # Amostragem 1:100 de pacotes reduz impacto na base.
       # Amostragem reduz custo e também reduz a cobertura observada.
       sampling: 100
   processor:
