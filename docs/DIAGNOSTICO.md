@@ -17,7 +17,7 @@ Direct, Loki dedicado e métricas agregadas por namespace.
 
 Aceite e produção herdam a base com sampling 100 e sem essas funcionalidades.
 Esses overlays exigem dimensionamento e revisão de segurança antes do uso.
-NetworkEvents não está habilitado: a correlação com políticas depende de
+No perfil padrão NetworkEvents não está habilitado: a correlação com políticas depende de
 OVNObservability, recurso Technology Preview. Não altere FeatureGate para
 obter apenas a visualização de drops.
 
@@ -118,3 +118,5 @@ Não apague Loki, PVCs ou a Application para reverter o perfil.
 - [API FlowCollector](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md)
 
 Valide os campos contra a CRD instalada, além da documentação da versão.
+
+Para o experimento separado, consulte [NETWORK-EVENTS.md](NETWORK-EVENTS.md).

@@ -1,0 +1,22 @@
+# Requer OVNObservability ativo no cluster antes da sincronização.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../desenvolvimento
+patches:
+  - target:
+      group: flows.netobserv.io
+      version: v1beta2
+      kind: FlowCollector
+      name: cluster
+    patch: |-
+      - op: add
+        path: /spec/agent/ebpf/features
+        value:
+          - PacketDrop
+          - DNSTracking
+          - FlowRTT
+          - NetworkEvents
+      - op: add
+        path: /spec/processor/metrics/includeList/-
+        value: namespace_network_policy_events_total

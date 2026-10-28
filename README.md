@@ -132,3 +132,9 @@ Consulte [docs/OPERACAO.md](docs/OPERACAO.md) para os procedimentos de configura
 ## Aprender a configuração
 
 Consulte o [guia comentado](docs/APRENDIZADO.md) para entender componentes, escolhas, testes positivos/negativos e reversão.
+
+## Network Events experimental
+
+O [perfil opcional](docs/NETWORK-EVENTS.md) correlaciona decisões OVN com fluxos.
+Requer bootstrap explícito da FeatureGate no cluster; não é ativado pelo perfil
+desenvolvimento padrão nem pelo simples cadastro da Application opcional.
