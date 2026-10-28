@@ -138,3 +138,7 @@ Consulte o [guia comentado](docs/APRENDIZADO.md) para entender componentes, esco
 O [perfil opcional](docs/NETWORK-EVENTS.md) correlaciona decisões OVN com fluxos.
 Requer bootstrap explícito da FeatureGate no cluster; não é ativado pelo perfil
 desenvolvimento padrão nem pelo simples cadastro da Application opcional.
+
+## Diagnóstico integrado de rede e mesh
+
+Consulte o [guia de observabilidade do mesh](https://github.com/thiagobotelho/service-mesh-gitops/blob/main/docs/OBSERVABILIDADE.md) para correlacionar NetworkPolicy, logs de proxies, mTLS, autorização HTTP e traces, com as fontes de dados corretas.

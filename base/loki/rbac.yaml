@@ -34,5 +34,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: loki-gateway
-    # Namespace deste objeto; não confundir com seleção de namespaces de origem.
     namespace: netobserv
