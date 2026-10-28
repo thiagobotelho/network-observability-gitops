@@ -7,7 +7,6 @@ metadata:
     argocd.argoproj.io/sync-wave: "20"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  # Namespace deste objeto; não confundir com seleção de namespaces de origem.
   namespace: netobserv
   deploymentModel: Direct
   networkPolicy:

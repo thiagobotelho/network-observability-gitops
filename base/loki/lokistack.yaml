@@ -2,7 +2,6 @@ apiVersion: loki.grafana.com/v1
 kind: LokiStack
 metadata:
   name: loki
-  # Namespace deste objeto; não confundir com seleção de namespaces de origem.
   namespace: netobserv
   annotations:
     argocd.argoproj.io/sync-wave: "10"
