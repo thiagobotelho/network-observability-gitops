@@ -1,7 +1,7 @@
 # network-observability-gitops
 
 Network Observability Operator para OpenShift Local. O perfil CRC usa o
-modelo `Direct`, indicado para clusters pequenos, amostragem conservadora e
+modelo `Direct`, indicado para clusters pequenos, diagnóstico de drops/DNS/RTT e
 métricas no Prometheus do OpenShift. Para a UI completa de fluxos, este repo
 cria um LokiStack dedicado em `netobserv`, separado do LokiStack de logging.
 
@@ -35,11 +35,12 @@ bootstrap são fixos para o perfil CRC; ele não carrega o arquivo `.env`.
 `--check` verifica o Secret e a disponibilidade do MinIO sem criar recursos;
 a criação e a verificação do bucket são feitas pela execução sem essa opção.
 
-Referência: documentação Network Observability do OpenShift 4.20.
+Referências e operação: [diagnóstico de rede](docs/DIAGNOSTICO.md).
 
 As políticas adotadas para o ambiente local ficam em `docs/POLITICAS.md`. O
-`FlowCollector` habilita `spec.networkPolicy.enable: true`, sampling conservador
-e métricas com cardinalidade reduzida.
+`FlowCollector` habilita `spec.networkPolicy.enable: true`. O overlay de
+desenvolvimento ativa PacketDrop, DNSTracking e FlowRTT, com sampling 1
+e agente privilegiado. A base mantém sampling 100 e não habilita esses recursos.
 
 Manual passo a passo: [docs/COMO-USAR.md](docs/COMO-USAR.md).
 
@@ -121,7 +122,8 @@ real é versionada.
 
 O laboratório [mesh-apps-lab](https://github.com/thiagobotelho/mesh-apps-lab) diferencia timeout/conexão recusada por OVN, rejeição de plaintext por mTLS e HTTP 403 por AuthorizationPolicy. Métricas HTTP do Envoy não contabilizam necessariamente pacotes descartados antes do proxy.
 
-Use a UI de fluxos já existente separadamente para investigar L3/L4. Confirme se a versão/configuração oferece evidência de drop antes de afirmar bloqueios observados. Não adicionar permissões elevadas aos clientes sleep nem criar outro FlowCollector para o exercício. Nenhuma mudança técnica de coleta é necessária nesta proposta.
+Use a UI de fluxos já existente separadamente para investigar L3/L4. Confirme se a versão/configuração oferece evidência de drop antes de afirmar bloqueios observados. Não adicionar permissões elevadas aos clientes sleep nem criar outro FlowCollector para o exercício. Use o [perfil de diagnóstico](docs/DIAGNOSTICO.md) para observar drops, DNS e RTT.
+Drops não identificam, por si só, a política responsável e não equivalem a HTTP 403.
 
 ## Manual de operação
 

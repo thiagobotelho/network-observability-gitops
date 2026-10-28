@@ -1,0 +1,34 @@
+# Perfil de diagnóstico para CRC; não herdado por aceite ou produção.
+apiVersion: flows.netobserv.io/v1beta2
+kind: FlowCollector
+metadata:
+  name: cluster
+spec:
+  agent:
+    ebpf:
+      # Sem redução por amostragem; aumenta a carga e o volume no Loki.
+      sampling: 1
+      # PacketDrop exige acesso privilegiado ao kernel do nó.
+      # Permissão restrita ao agente gerenciado pelo Operator.
+      privileged: true
+      features:
+        - PacketDrop
+        - DNSTracking
+        - FlowRTT
+  processor:
+    metrics:
+      # Agregação por namespace limita cardinalidade; nomes sem netobserv_.
+      includeList:
+        - namespace_flows_total
+        - node_ingress_bytes_total
+        - node_egress_bytes_total
+        - workload_ingress_bytes_total
+        - workload_egress_bytes_total
+        - namespace_drop_packets_total
+        # Denominadores e agregação por nó usados nos alertas padrão de drops.
+        - namespace_ingress_packets_total
+        - node_drop_packets_total
+        - node_ingress_packets_total
+        - namespace_dns_latency_seconds
+        - namespace_dns_flows_total
+        - namespace_rtt_seconds

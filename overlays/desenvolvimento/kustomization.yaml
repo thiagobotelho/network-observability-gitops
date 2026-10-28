@@ -12,6 +12,7 @@ labels:
     app.kubernetes.io/environment: desenvolvimento
   includeSelectors: false
 patches:
+- path: diagnostico.yaml
 - target:
     group: loki.grafana.com
     version: v1
