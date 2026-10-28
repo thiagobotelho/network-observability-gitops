@@ -23,6 +23,11 @@ agente privilegiado. Acrescenta namespace_network_policy_events_total ao
 includeList. A permissão elevada é do agente; clientes do laboratório
 continuam sem SCC privilegiada.
 
+O perfil limita writeBatchSize a 1 MiB para evitar lotes maiores que o burst
+de ingestão do Loki reduzido. Monitore erros HTTP 429 no pipeline. Se o volume
+sustentado exceder a capacidade, revise sampling, filtros e dimensionamento;
+reduzir o lote não aumenta a capacidade de ingestão.
+
 Via Argo, aplique optional/network-events no argocd-gitops. Se não houver
 gerenciamento GitOps, aplique diretamente:
 
