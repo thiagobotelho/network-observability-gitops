@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Validar seleção de contexto e bootstrap S3
+        run: python3 tests/test-bootstrap-crc-s3.py
       - run: pipx run yamllint==1.37.1 -d relaxed .
       - name: Render every Kustomize entry point
         run: |
