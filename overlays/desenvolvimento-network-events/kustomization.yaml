@@ -20,3 +20,7 @@ patches:
       - op: add
         path: /spec/processor/metrics/includeList/-
         value: namespace_network_policy_events_total
+      # Lotes menores evitam exceder o burst de ingestão do Loki reduzido.
+      - op: add
+        path: /spec/loki/writeBatchSize
+        value: 1048576

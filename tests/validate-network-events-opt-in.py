@@ -17,6 +17,7 @@ for profile in ("desenvolvimento", "aceite", "producao", "desenvolvimento-networ
         assert features == {"PacketDrop", "DNSTracking", "FlowRTT", "NetworkEvents"}
         assert agent["privileged"] is True and agent["sampling"] == 1
         assert "namespace_network_policy_events_total" in metrics
+        assert flows[0]["spec"]["loki"]["writeBatchSize"] == 1048576
     else:
         assert "NetworkEvents" not in features, profile
         assert "namespace_network_policy_events_total" not in metrics, profile
