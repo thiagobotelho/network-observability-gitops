@@ -2,18 +2,30 @@
 """Bootstrap S3 only on personal CRC; credentials travel through memory/stdin."""
 import argparse,base64,datetime,json,resource,subprocess,sys,time
 resource.setrlimit(resource.RLIMIT_CORE,(0,0))
-parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--check',action='store_true');args=parser.parse_args()
-OC=['oc','--context=crc-admin','--server=https://api.crc.testing:6443','--request-timeout=20s']
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--check',action='store_true')
+parser.add_argument('--context',help='Contexto do CRC; padrão: contexto atual do KUBECONFIG')
+args=parser.parse_args()
+OC=['oc','--request-timeout=20s']
 def call(argv,obj=None):
  p=subprocess.run(OC+argv,input=json.dumps(obj) if obj is not None else None,capture_output=True,text=True,timeout=30)
- if p.returncode:raise RuntimeError('CRC operation failed: '+argv[0])
+ if p.returncode:
+  if argv[0]=='whoami':
+   raise RuntimeError('Autenticação no CRC falhou. Execute oc whoami no mesmo terminal; refaça o login e tente novamente.')
+  raise RuntimeError('Falha em oc '+argv[0]+'. Verifique conexão e permissões no contexto selecionado; nenhuma credencial será exibida.')
  return p.stdout
 try:
+ context=args.context or call(['config','current-context']).strip()
+ if not context:raise RuntimeError('Nenhum contexto selecionado. Faça login no CRC antes de continuar.')
+ OC.extend(['--context',context])
+ server=call(['config','view','--minify','-o','jsonpath={.clusters[0].cluster.server}']).strip()
+ if server!='https://api.crc.testing:6443':
+  raise RuntimeError('Contexto recusado: este bootstrap aceita somente https://api.crc.testing:6443. Selecione o contexto do CRC.')
  call(['whoami']);root=json.loads(call(['get','secret/minio-credentials','-n','openshift-logging','-o','json']))['data']
  expected={'access_key_id':root['root-user'],'access_key_secret':root['root-password']}
- p=subprocess.run(OC+['get','secret/netobserv-loki-s3','-n','netobserv','-o','json'],capture_output=True,text=True,timeout=30)
- if p.returncode==0:
-  actual=json.loads(p.stdout)['data']
+ secret=call(['get','secret/netobserv-loki-s3','-n','netobserv','--ignore-not-found','-o','json'])
+ if secret.strip():
+  actual=json.loads(secret)['data']
   if any(actual.get(k)!=v for k,v in expected.items()):raise RuntimeError('Existing S3 credentials differ; refusing to overwrite')
  elif args.check:raise RuntimeError('Missing netobserv/netobserv-loki-s3')
  else:

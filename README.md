@@ -8,8 +8,10 @@ cria um LokiStack dedicado em `netobserv`, separado do LokiStack de logging.
 Antes de sincronizar o app, gere o Secret S3 e o bucket do Loki dedicado:
 
 ```bash
-cp .env.example .env
-scripts/bootstrap-netobserv-loki.sh
+oc whoami
+oc -n openshift-logging rollout status deployment/minio --timeout=5m
+oc create namespace netobserv --dry-run=client -o yaml | oc apply -f -
+bash scripts/bootstrap-netobserv-loki.sh
 ```
 
 ```bash
@@ -18,6 +20,20 @@ oc apply -k overlays/desenvolvimento
 
 Habilite somente após a stack principal estabilizar: o agente eBPF e o
 processor consomem recursos adicionais e exigem `cluster-admin`.
+
+O bootstrap usa o contexto atual de `oc` e respeita `KUBECONFIG`. O servidor
+deve ser `https://api.crc.testing:6443`. Para selecionar outro contexto do CRC:
+
+```bash
+oc config get-contexts
+bash scripts/bootstrap-netobserv-loki.sh --context NOME_DO_CONTEXTO
+```
+
+Se `oc whoami` falhar, refaça o login no CRC no mesmo terminal. O script não
+troca o servidor nem exige o contexto `crc-admin`. Os parâmetros de S3 deste
+bootstrap são fixos para o perfil CRC; ele não carrega o arquivo `.env`.
+`--check` verifica o Secret e a disponibilidade do MinIO sem criar recursos;
+a criação e a verificação do bucket são feitas pela execução sem essa opção.
 
 Referência: documentação Network Observability do OpenShift 4.20.
 
