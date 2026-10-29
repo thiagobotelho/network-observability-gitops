@@ -24,3 +24,4 @@ spec:
         - system:cluster-admins
         - cluster-admin
         - dedicated-admin
+        - openshift-cluster-admins
